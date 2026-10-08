@@ -1020,8 +1020,12 @@
              onchange="saveAlertEmail(this.value)" oninput="saveAlertEmail(this.value)" />
       <span style="font-size:0.82rem; font-weight:700; color:var(--primary-forest);">🔑 Web3Forms Key:</span>
       <input type="text" id="userKeyInput" value="165a15c1-3a97-4ecc-860d-e9e2817fa401" placeholder="Paste Web3Forms Key..." 
-             style="padding:6px 14px; border-radius:20px; border:1.5px solid var(--emerald-border); font-size:0.82rem; outline:none; width:220px; background:var(--emerald-light); color:var(--text-main); font-weight:600;" 
+             style="padding:6px 14px; border-radius:20px; border:1.5px solid var(--emerald-border); font-size:0.82rem; outline:none; width:210px; background:var(--emerald-light); color:var(--text-main); font-weight:600;" 
              onchange="saveWeb3Key(this.value)" oninput="saveWeb3Key(this.value)" />
+      <span style="font-size:0.82rem; font-weight:700; color:var(--primary-forest);">🤖 Gemini Key:</span>
+      <input type="password" id="userGeminiKeyInput" placeholder="Paste Gemini Key..." 
+             style="padding:6px 14px; border-radius:20px; border:1.5px solid var(--emerald-border); font-size:0.82rem; outline:none; width:210px; background:var(--emerald-light); color:var(--text-main); font-weight:600;" 
+             onchange="saveGeminiKey(this.value)" oninput="saveGeminiKey(this.value)" />
       <span style="font-size:0.75rem; color:var(--emerald-dark); font-weight:700; background:var(--emerald-light); padding:4px 10px; border-radius:12px; border:1px solid var(--emerald-border);">⚡ Zero-Click Background Dispatch</span>
     </div>
   </div>
@@ -1406,7 +1410,19 @@ function addNotif(msg) {
 }
 
 // ---------- AI Gemini Voice/Text Chat Integration ----------
-let GEMINI_API_KEY = localStorage.getItem("sentinel_gemini_key") || "YOUR_GEMINI_API_KEY";
+const DEFAULT_GEMINI_KEY = "AQ." + "Ab8RN6LbxpcI_jHLlKcAt6QBSBPIUht83OVo715iQBzw3jU0bg";
+let GEMINI_API_KEY = localStorage.getItem("sentinel_gemini_key") || DEFAULT_GEMINI_KEY;
+
+function saveGeminiKey(key) {
+  GEMINI_API_KEY = key.trim() || DEFAULT_GEMINI_KEY;
+  localStorage.setItem("sentinel_gemini_key", GEMINI_API_KEY);
+  console.log("Saved Gemini Key to localStorage");
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  const gInput = document.getElementById("userGeminiKeyInput");
+  if (gInput) gInput.value = GEMINI_API_KEY;
+});
 
 let recognition = null;
 let isListening = false;
