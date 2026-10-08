@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SentinelHome MQTT Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-subtle: #f1f5f9;
+    --border-color: #e2e8f0;
+    --border-hover: #cbd5e1;
+    
+    /* Strict White & Emerald Green Theme */
+    --primary-forest: #064e3b;
+    --primary-emerald: #10b981;
+    --emerald-dark: #047857;
+    --emerald-light: #ecfdf5;
+    --emerald-border: #a7f3d0;
+    --emerald-glow: rgba(16, 185, 129, 0.25);
+    
+    /* Neutral Text */
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --text-light: #94a3b8;
+    
+    /* Alert & Warning States */
+    --status-online: #10b981;
+    --status-online-bg: #ecfdf5;
+    --status-online-border: #a7f3d0;
+    
+    --status-warn: #d97706;
+    --status-warn-bg: #fffbeb;
+    --status-warn-border: #fde68a;
+    
+    --status-offline: #dc2626;
+    --status-offline-bg: #fef2f2;
+    --status-offline-border: #fecaca;
+    
+    --status-info: #047857;
+    --status-info-bg: #f0fdf4;
+    --status-info-border: #bbf7d0;
+    
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+    --radius-pill: 9999px;
+    
+    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.03);
+    --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+    --shadow-emerald: 0 12px 30px -5px rgba(16, 185, 129, 0.25);
+    --shadow-alert: 0 12px 30px -5px rgba(239, 68, 68, 0.35);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
+  
+  body {
+    background: var(--bg-main);
+    background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+    background-size: 24px 24px;
+    color: var(--text-main);
+    min-height: 100vh;
+    padding: 24px 16px 40px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Top Header */
+  header {
+    text-align: center;
+    padding: 10px 0 20px;
+    max-width: 1200px;
+    margin: 0 auto 16px;
+  }
+  
+  .header-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #064e3b, #10b981, #059669);
+  }
+
+  header h1 {
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: var(--primary-forest);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.5px;
+  }
+
+  header p {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .response-badge {
+    background: var(--emerald-light);
+    color: var(--primary-forest);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    font-weight: 700;
+    font-size: 0.75rem;
+    border: 1px solid var(--emerald-border);
+  }
+
+  /* Status Bar */
+  .status-bar {
+    max-width: 1200px;
+    margin: 0 auto 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .badge {
+    padding: 8px 16px;
+    border-radius: var(--radius-pill);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1.5px solid transparent;
+  }
+
+  .badge.online {
+    background: var(--status-online-bg);
+    color: var(--primary-forest);
+    border-color: var(--status-online-border);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+  }
+
+  .badge.offline {
+    background: var(--status-offline-bg);
+    color: #991b1b;
+    border-color: var(--status-offline-border);
+    animation: offlinePulse 2s infinite ease-in-out;
+  }
+
+  .badge.warn {
+    background: var(--status-warn-bg);
+    color: #92400e;
+    border-color: var(--status-warn-border);
+  }
+
+  .badge.info {
+    background: var(--status-info-bg);
+    color: var(--primary-forest);
+    border-color: var(--status-info-border);
+  }
+
+  #connBadge.online::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: var(--primary-emerald);
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: heartbeat 1.6s infinite cubic-bezier(0.66, 0, 0, 1);
+  }
+
+  #buzzerBadge {
+    position: relative;
+  }
+
+  #buzzerBadge:not(:empty) {
+    animation: acousticPulse 1.5s infinite ease-in-out;
+  }
+
+  @keyframes acousticPulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+
+  @keyframes heartbeat {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+
+  @keyframes offlinePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* Layout Container */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 900px) {
+    .container { grid-template-columns: 1fr; gap: 20px; }
+  }
+
+  /* Section Styling */
+  .section {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-md);
+  }
+
+  .section h2 {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin-bottom: 20px;
+    color: var(--primary-forest);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.3px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--emerald-light);
+  }
+
+  /* Sensor Grid */
+  .sensor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  @media (max-width: 480px) {
+    .sensor-grid { grid-template-columns: 1fr; }
+  }
+
+  .sensor-card {
+    background: var(--bg-main);
+    padding: 18px 16px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border-color);
+    border-left: 5px solid var(--emerald-dark);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .sensor-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+    border-color: var(--border-hover);
+  }
+
+  .sensor-card.ok {
+    border-left-color: var(--primary-emerald);
+  }
+
+  .sensor-card.warn {
+    border-left-color: var(--status-warn);
+    background: #fffbeb;
+  }
+
+  .sensor-card.alert {
+    border-left-color: var(--status-offline);
+    background: #fef2f2;
+    animation: alertCardGlow 1.2s infinite alternate;
+  }
+
+  @keyframes alertCardGlow {
+    0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); }
+    100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.45); }
+  }
+
+  .sensor-card .label {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sensor-card .value {
+    font-size: 1.55rem;
+    font-weight: 800;
+    margin-top: 8px;
+    color: var(--text-main);
+    letter-spacing: -0.5px;
+  }
+
+  .sensor-card .value small {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-left: 2px;
+  }
+
+  /* 3D Cylindrical Water Tank Widget inside #cardWater */
+  .tank-3d-container {
+    perspective: 600px;
+    width: 100%;
+    height: 80px;
+    margin: 10px 0 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .tank-3d-glass {
+    width: 76px;
+    height: 76px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 2px solid rgba(16, 185, 129, 0.35);
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.9), 0 6px 15px rgba(0, 0, 0, 0.05);
+  }
+
+  .tank-3d-glass::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 15%;
+    width: 20%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(255,255,255,0.7), rgba(255,255,255,0));
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .tank-3d-liquid {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 65%;
+    background: linear-gradient(180deg, #34d399 0%, #059669 100%);
+    transition: height 0.8s ease, background 0.5s ease;
+    z-index: 2;
+  }
+
+  .sensor-card.alert .tank-3d-liquid {
+    height: 18%;
+    background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
+  }
+
+  .sensor-card.warn .tank-3d-liquid {
+    height: 90%;
+    background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+  }
+
+  .liquid-wave {
+    position: absolute;
+    top: -6px;
+    left: 0;
+    width: 200%;
+    height: 12px;
+    opacity: 0.7;
+    background-repeat: repeat-x;
+  }
+
+  .wave-1 {
+    background: radial-gradient(ellipse at center, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+    animation: waveScroll 2.8s linear infinite;
+  }
+
+  @keyframes waveScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .bubble {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.65);
+    border-radius: 50%;
+    animation: bubbleRise 2.8s infinite ease-in;
+  }
+  .b1 { width: 4px; height: 4px; left: 20%; animation-delay: 0s; }
+  .b2 { width: 5px; height: 5px; left: 65%; animation-delay: 1.1s; }
+
+  @keyframes bubbleRise {
+    0% { bottom: 0; opacity: 0; }
+    50% { opacity: 0.8; }
+    100% { bottom: 90%; opacity: 0; }
+  }
+
+  /* Fire Card Overlay Animation */
+  .sensor-card#cardFire.alert {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border-color: #ef4444;
+  }
+
+  .sensor-card#cardFire.alert::after {
+    content: '🔥 HAZARD ACTIVE';
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: #dc2626;
+    background: #fecaca;
+    padding: 2px 6px;
+    border-radius: 4px;
+    animation: flashBadge 0.5s infinite alternate;
+  }
+
+  @keyframes flashBadge {
+    0% { opacity: 0.4; }
+    100% { opacity: 1; }
+  }
+
+  /* Smoke Sensor Particle Animation */
+  .sensor-card#cardSmoke.alert::before {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    right: 15px;
+    width: 45px;
+    height: 45px;
+    background: radial-gradient(circle, rgba(156, 163, 175, 0.45) 0%, rgba(209, 213, 219, 0) 70%);
+    border-radius: 50%;
+    animation: smokePuff 1.8s infinite ease-out;
+    pointer-events: none;
+  }
+
+  @keyframes smokePuff {
+    0% { transform: translateY(0) scale(0.6); opacity: 0.8; }
+    100% { transform: translateY(-35px) scale(1.7); opacity: 0; }
+  }
+
+  /* Motion Sensor Radar Effect */
+  .sensor-card#cardMotion.alert::before {
+    content: '';
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 14px;
+    height: 14px;
+    background-color: var(--primary-emerald);
+    border-radius: 50%;
+    animation: radarSweep 1.2s infinite ease-out;
+  }
+
+  @keyframes radarSweep {
+    0% { transform: scale(0.8); opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    100% { transform: scale(2.4); opacity: 0; box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+  }
+
+  /* Vibration Waveform Spike Animation & Seismograph Widget */
+  .seismo-graph {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 20px;
+    margin-top: 8px;
+    padding: 2px 4px;
+    background: rgba(241, 245, 249, 0.8);
+    border-radius: 6px;
+  }
+
+  .seismo-bar {
+    flex: 1;
+    background: #cbd5e1;
+    border-radius: 2px;
+    height: 25%;
+    transition: height 0.3s ease, background 0.3s ease;
+  }
+
+  .sensor-card#cardVib.alert .seismo-bar {
+    background: #ef4444;
+    animation: seismoSpike 0.35s infinite alternate;
+  }
+
+  .sensor-card#cardVib.alert .seismo-bar:nth-child(1) { animation-delay: 0.05s; }
+  .sensor-card#cardVib.alert .seismo-bar:nth-child(2) { animation-delay: 0.15s; }
+  .sensor-card#cardVib.alert .seismo-bar:nth-child(3) { animation-delay: 0.25s; }
+  .sensor-card#cardVib.alert .seismo-bar:nth-child(4) { animation-delay: 0.10s; }
+
+  @keyframes seismoSpike {
+    0% { height: 20%; }
+    100% { height: 100%; }
+  }
+
+  .sensor-card#cardVib.alert {
+    animation: vibShakeCard 0.2s infinite;
+  }
+
+  @keyframes vibShakeCard {
+    0% { transform: translate(0, 0); }
+    50% { transform: translate(-1px, 1px); }
+    100% { transform: translate(1px, -1px); }
+  }
+
+  /* Smart Light Radial Glow Widget */
+  .light-glow-aura {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(251, 191, 36, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 14px;
+    right: 14px;
+  }
+
+  .light-glow-aura::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(245, 158, 11, 0.35);
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.6);
+    animation: radiancePulse 2s infinite alternate ease-in-out;
+  }
+
+  @keyframes radiancePulse {
+    0% { transform: scale(0.9); opacity: 0.5; }
+    100% { transform: scale(1.3); opacity: 0.95; }
+  }
+
+  /* Rain Streaks Animation */
+  .rain-anim-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .sensor-card#cardRain.alert .rain-anim-layer {
+    opacity: 1;
+  }
+
+  .rain-streak {
+    position: absolute;
+    width: 2px;
+    height: 10px;
+    background: var(--primary-emerald);
+    border-radius: 2px;
+    animation: rainFall 0.7s infinite linear;
+  }
+
+  .rain-streak:nth-child(1) { left: 30%; animation-delay: 0s; }
+  .rain-streak:nth-child(2) { left: 60%; animation-delay: 0.3s; }
+  .rain-streak:nth-child(3) { left: 85%; animation-delay: 0.55s; }
+
+  @keyframes rainFall {
+    0% { transform: translateY(-10px); opacity: 0; }
+    50% { opacity: 1; }
+    100% { transform: translateY(60px); opacity: 0; }
+  }
+
+  /* Relay Controls Grid (2x2 Grid) */
+  .relay-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .relay-card {
+    background: #ffffff;
+    padding: 22px 16px;
+    border-radius: var(--radius-lg);
+    text-align: center;
+    border: 1.5px solid var(--border-color);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .relay-card::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    transition: all 0.3s ease;
+  }
+
+  .relay-card.on::before {
+    background: var(--primary-emerald);
+    box-shadow: 0 0 10px var(--primary-emerald);
+  }
+
+  .relay-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-md);
+  }
+
+  .relay-card.on {
+    border-color: var(--primary-emerald);
+    background: linear-gradient(145deg, #ffffff 0%, #ecfdf5 100%);
+    box-shadow: var(--shadow-emerald);
+    transform: translateY(-2px);
+  }
+
+  .relay-card .icon {
+    font-size: 2rem;
+    line-height: 1;
+    transition: transform 0.3s ease;
+  }
+
+  /* Animated Icon effects for Active Relays */
+  .relay-card.on#rc1 .icon {
+    filter: drop-shadow(0 0 10px #10b981);
+    animation: bulbPulse 1.8s infinite alternate;
+  }
+
+  .relay-card.on#rc2 .icon {
+    display: inline-block;
+    animation: fanSpin 1.4s linear infinite;
+  }
+
+  .relay-card.on#rc3 .icon {
+    animation: motorBounce 1s infinite alternate;
+  }
+
+  .relay-card.on#rc4 .icon {
+    animation: emergencyStrobe 0.6s infinite alternate;
+  }
+
+  @keyframes bulbPulse {
+    0% { transform: scale(1); filter: drop-shadow(0 0 4px #10b981); }
+    100% { transform: scale(1.15); filter: drop-shadow(0 0 16px #10b981); }
+  }
+
+  @keyframes fanSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes motorBounce {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-4px); }
+  }
+
+  @keyframes emergencyStrobe {
+    0% { opacity: 0.5; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1.1); }
+  }
+
+  .relay-card .name {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .relay-card .state {
+    font-size: 0.75rem;
+    margin: 2px 0;
+    color: var(--text-muted);
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .relay-card.on .state {
+    color: var(--primary-forest);
+  }
+
+  /* Tactile Switch Toggle */
+  .toggle {
+    width: 56px;
+    height: 30px;
+    border-radius: var(--radius-pill);
+    background: #cbd5e1;
+    position: relative;
+    cursor: pointer;
+    margin: 4px auto 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ffffff;
+    top: 3px;
+    left: 3px;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+
+  .toggle:active {
+    transform: scale(0.94);
+  }
+
+  .toggle.on {
+    background: var(--primary-emerald);
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+  }
+
+  .toggle.on::after {
+    left: 29px;
+  }
+
+  /* Notification Log */
+  .notif-list {
+    max-height: 280px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 4px;
+  }
+
+  .notif-item {
+    background: var(--bg-main);
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--primary-emerald);
+    font-size: 0.88rem;
+    color: var(--text-main);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+    animation: fadeNotif 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.2s ease;
+  }
+
+  .notif-item:hover {
+    background: #ffffff;
+    box-shadow: var(--shadow-md);
+  }
+
+  .ntime {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--primary-forest);
+    background: var(--emerald-light);
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--emerald-border);
+    white-space: nowrap;
+    margin-left: 12px;
+  }
+
+  .notif-list::-webkit-scrollbar { width: 6px; }
+  .notif-list::-webkit-scrollbar-track { background: var(--bg-main); border-radius: 10px; }
+  .notif-list::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 10px; }
+  .notif-list::-webkit-scrollbar-thumb:hover { background: var(--primary-emerald); }
+
+  @keyframes fadeNotif {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .sms-alert-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    padding: 3px 8px;
+    background: #dc2626;
+    color: #ffffff;
+    border-radius: var(--radius-pill);
+    text-decoration: none;
+    font-size: 0.72rem;
+    font-weight: 700;
+    transition: background 0.2s;
+  }
+  .sms-alert-link:hover {
+    background: #b91c1c;
+    color: #ffffff;
+  }
+
+  .email-alert-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 4px;
+    padding: 3px 8px;
+    background: #0284c7;
+    color: #ffffff;
+    border-radius: var(--radius-pill);
+    text-decoration: none;
+    font-size: 0.72rem;
+    font-weight: 700;
+    transition: background 0.2s;
+  }
+  .email-alert-link:hover {
+    background: #0369a1;
+    color: #ffffff;
+  }
+
+  /* AI Assistant Floating FAB & Collapsible Chat Widget */
+  .ai-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #064e3b 0%, #10b981 100%);
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    font-size: 1.5rem;
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .ai-fab:hover {
+    transform: scale(1.08);
+    box-shadow: 0 12px 28px rgba(16, 185, 129, 0.55);
+  }
+  .ai-fab.active {
+    background: #ef4444;
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+  }
+
+  .ai-chat-card {
+    position: fixed;
+    bottom: 92px;
+    right: 24px;
+    width: 340px;
+    height: 440px;
+    background: #ffffff;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.14), 0 4px 12px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    z-index: 9998;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(20px) scale(0.92);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .ai-chat-card.open {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .ai-chat-header {
+    background: linear-gradient(90deg, #064e3b, #10b981);
+    color: #ffffff;
+    padding: 12px 16px;
+    font-weight: 800;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .ai-close-btn {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 1.1rem;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+  }
+  .ai-close-btn:hover { opacity: 1; }
+
+  .ai-chat-messages {
+    flex: 1;
+    padding: 12px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #f8fafc;
+  }
+  .msg {
+    max-width: 85%;
+    padding: 8px 12px;
+    border-radius: 14px;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    word-break: break-word;
+    animation: chatMsgFade 0.25s ease;
+  }
+  .msg.user-msg {
+    align-self: flex-end;
+    background: #10b981;
+    color: #ffffff;
+    border-bottom-right-radius: 2px;
+  }
+  .msg.ai-msg {
+    align-self: flex-start;
+    background: #ffffff;
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-bottom-left-radius: 2px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .msg.status-msg {
+    align-self: center;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    background: transparent;
+    font-style: italic;
+    padding: 2px 6px;
+  }
+  @keyframes chatMsgFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .ai-chat-input-area {
+    padding: 10px;
+    background: #ffffff;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ai-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-pill);
+    font-size: 0.82rem;
+    outline: none;
+  }
+  .ai-input:focus { border-color: var(--primary-emerald); }
+  .ai-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: var(--emerald-light);
+    color: var(--primary-forest);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+  }
+  .ai-btn:hover { background: var(--primary-emerald); color: #ffffff; }
+  .ai-btn.listening {
+    background: var(--status-offline);
+    color: #ffffff;
+    animation: micPulse 1.2s infinite ease-in-out;
+  }
+  @keyframes micPulse {
+    0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-card">
+    <h1>🏠 SentinelHome</h1>
+    <p>MQTT Real-Time Control • <span class="response-badge">~200ms response</span></p>
+    <div style="margin-top:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center;">
+      <span style="font-size:0.82rem; font-weight:700; color:var(--primary-forest);">✉️ Auto-Email Alert:</span>
+      <input type="email" id="userEmailInput" value="tamiltamilboss090@gmail.com" placeholder="Enter recipient email..." 
+             style="padding:6px 14px; border-radius:20px; border:1.5px solid var(--emerald-border); font-size:0.82rem; outline:none; width:250px; background:var(--emerald-light); color:var(--text-main); font-weight:600;" 
+             onchange="saveAlertEmail(this.value)" oninput="saveAlertEmail(this.value)" />
+      <span style="font-size:0.82rem; font-weight:700; color:var(--primary-forest);">🔑 Web3Forms Key:</span>
+      <input type="text" id="userKeyInput" value="165a15c1-3a97-4ecc-860d-e9e2817fa401" placeholder="Paste Web3Forms Key..." 
+             style="padding:6px 14px; border-radius:20px; border:1.5px solid var(--emerald-border); font-size:0.82rem; outline:none; width:220px; background:var(--emerald-light); color:var(--text-main); font-weight:600;" 
+             onchange="saveWeb3Key(this.value)" oninput="saveWeb3Key(this.value)" />
+      <span style="font-size:0.75rem; color:var(--emerald-dark); font-weight:700; background:var(--emerald-light); padding:4px 10px; border-radius:12px; border:1px solid var(--emerald-border);">⚡ Zero-Click Background Dispatch</span>
+    </div>
+  </div>
+</header>
+
+<div class="status-bar">
+  <span id="connBadge" class="badge offline">● Connecting...</span>
+  <span id="modeBadge" class="badge info">Motor: --</span>
+  <span id="waterBadge" class="badge info">Water: --</span>
+  <span id="buzzerBadge" class="badge info">Buzzer: --</span>
+</div>
+
+<div class="container">
+  <div class="section">
+    <h2>📊 Live Sensors</h2>
+    <div class="sensor-grid">
+      <div class="sensor-card" id="cardTemp">
+        <div class="label">🌡️ Temperature</div>
+        <div class="value"><span id="valTemp">--</span> <small>°C</small></div>
+      </div>
+      <div class="sensor-card" id="cardHumid">
+        <div class="label">💧 Humidity</div>
+        <div class="value"><span id="valHumid">--</span> <small>%</small></div>
+      </div>
+      <div class="sensor-card" id="cardWater">
+        <div class="label">🚰 Water Level</div>
+        <div class="tank-3d-container">
+          <div class="tank-3d-glass">
+            <div class="tank-3d-liquid">
+              <div class="liquid-wave wave-1"></div>
+              <div class="bubble b1"></div>
+              <div class="bubble b2"></div>
+            </div>
+          </div>
+        </div>
+        <div class="value"><span id="valWater">--</span> <small>%</small></div>
+      </div>
+      <div class="sensor-card" id="cardLight">
+        <div class="light-glow-aura"></div>
+        <div class="label">💡 Light</div>
+        <div class="value"><span id="valLight">--</span> <small>%</small></div>
+      </div>
+      <div class="sensor-card" id="cardFire">
+        <div class="label">🔥 Fire</div>
+        <div class="value" id="valFire">--</div>
+      </div>
+      <div class="sensor-card" id="cardSmoke">
+        <div class="label">💨 Smoke</div>
+        <div class="value" id="valSmoke">--</div>
+      </div>
+      <div class="sensor-card" id="cardVib">
+        <div class="label">📳 Vibration</div>
+        <div class="seismo-graph">
+          <div class="seismo-bar"></div>
+          <div class="seismo-bar"></div>
+          <div class="seismo-bar"></div>
+          <div class="seismo-bar"></div>
+        </div>
+        <div class="value"><span id="valVib">--</span> <small>cnt</small></div>
+      </div>
+      <div class="sensor-card" id="cardRain">
+        <div class="rain-anim-layer">
+          <div class="rain-streak"></div>
+          <div class="rain-streak"></div>
+          <div class="rain-streak"></div>
+        </div>
+        <div class="label">🌧️ Rain</div>
+        <div class="value" id="valRain">--</div>
+      </div>
+      <div class="sensor-card" id="cardMotion">
+        <div class="label">🚶 Motion</div>
+        <div class="value" id="valMotion">--</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🎛️ Device Controls</h2>
+    <div class="relay-grid">
+      <div class="relay-card" id="rc1"><div class="icon">💡</div><div class="name">Light</div><div class="state" id="state1">OFF</div><div class="toggle" id="tog1" onclick="toggleRelay(1)"></div></div>
+      <div class="relay-card" id="rc2"><div class="icon">🌀</div><div class="name">Fan</div><div class="state" id="state2">OFF</div><div class="toggle" id="tog2" onclick="toggleRelay(2)"></div></div>
+      <div class="relay-card" id="rc3"><div class="icon">🚰</div><div class="name">Motor</div><div class="state" id="state3">OFF</div><div class="toggle" id="tog3" onclick="toggleRelay(3)"></div></div>
+      <div class="relay-card" id="rc4"><div class="icon">🔦</div><div class="name">Emergency</div><div class="state" id="state4">OFF</div><div class="toggle" id="tog4" onclick="toggleRelay(4)"></div></div>
+    </div>
+  </div>
+
+  <div class="section" style="grid-column:1/-1;">
+    <h2>🔔 Notification Log</h2>
+    <div class="notif-list" id="notifList"><div class="notif-item">Waiting for events...</div></div>
+  </div>
+</div>
+
+<!-- Floating AI Assistant Launcher Button -->
+<button class="ai-fab" id="aiFab" onclick="toggleChatWindow()" title="Open AI Chat Assistant">🤖</button>
+
+<!-- Collapsible Small AI Chat Card -->
+<div class="ai-chat-card" id="aiChatCard">
+  <div class="ai-chat-header">
+    <span>🤖 Sentinel AI Assistant</span>
+    <button class="ai-close-btn" onclick="toggleChatWindow()">✕</button>
+  </div>
+  <div class="ai-chat-messages" id="aiMessages">
+    <div class="msg ai-msg">
+      Hello! Ask me status questions (e.g. <i>"What is fire status?"</i>) or command devices (e.g. <i>"Turn off light 1"</i>).
+    </div>
+  </div>
+  <div class="ai-chat-input-area">
+    <input type="text" id="aiInput" class="ai-input" placeholder="Ask or command..." onkeydown="if(event.key==='Enter') sendAiCommand()" />
+    <button id="micBtn" class="ai-btn" onclick="toggleVoice()" title="Voice Input">🎤</button>
+    <button class="ai-btn" onclick="sendAiCommand()" title="Send">➔</button>
+  </div>
+</div>
+
+<!-- MQTT.js & EmailJS via CDN -->
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<script>
+const TOPIC_BASE = "sentinel/dis-db3ec";
+const BROKER_WS = "wss://broker.hivemq.com:8884/mqtt";
+
+const relayState = { 1:false, 2:false, 3:false, 4:false };
+let client = null;
+
+// ---------- Connect ----------
+function connect() {
+  const clientId = "web-" + Math.random().toString(16).substr(2, 10);
+  console.log("Connecting to", BROKER_WS);
+
+  client = mqtt.connect(BROKER_WS, { clientId, clean: true, reconnectPeriod: 2000 });
+
+  client.on("connect", () => {
+    console.log("✅ MQTT connected");
+    setConn(true);
+    client.subscribe(TOPIC_BASE + "/#");
+  });
+
+  client.on("reconnect", () => setConn(false));
+  client.on("close",     () => setConn(false));
+  client.on("offline",   () => setConn(false));
+  client.on("error",     e  => { console.error(e); setConn(false); });
+
+  client.on("message", (topic, payload) => {
+    const val = payload.toString();
+    const key = topic.replace(TOPIC_BASE + "/", "");
+
+    // Sensors
+    if (key === "sensors/temperature") setText("valTemp", Number(val).toFixed(1));
+    else if (key === "sensors/humidity") setText("valHumid", Number(val).toFixed(1));
+    else if (key === "sensors/water") {
+      const w = Number(val);
+      setText("valWater", w);
+      const card = document.getElementById("cardWater");
+      card.className = "sensor-card " + (w < 20 ? "alert" : w > 80 ? "warn" : "ok");
+      const wb = document.getElementById("waterBadge");
+      wb.textContent = "Water: " + w + "%";
+      wb.className = "badge " + (w < 20 ? "offline" : w > 80 ? "warn" : "online");
+    }
+    else if (key === "sensors/light") setText("valLight", val);
+    else if (key === "sensors/fire") {
+      setBool("valFire", "cardFire", val);
+      if (val === "1") triggerMobileAlert("fire", "🔥 FIRE HAZARD DETECTED", "Fire alarm activated at home! Check immediately.");
+    }
+    else if (key === "sensors/smoke") {
+      setBool("valSmoke", "cardSmoke", val);
+      if (val === "1") triggerMobileAlert("smoke", "💨 SMOKE DETECTED", "Smoke sensor triggered! Inspect for smoke or fire.");
+    }
+    else if (key === "sensors/rain") {
+      setBool("valRain", "cardRain", val);
+      if (val === "1") triggerMobileAlert("rain", "🌧️ RAIN DETECTED", "Rain sensor activated! Close open windows.");
+    }
+    else if (key === "sensors/motion") {
+      setBool("valMotion", "cardMotion", val);
+      if (val === "1") triggerMobileAlert("motion", "🚶 MOTION DETECTED", "Motion detected at home!");
+    }
+    else if (key === "sensors/vibration") {
+      document.getElementById("cardVib").className = "sensor-card " + (val === "1" ? "alert" : "ok");
+      if (val === "1") triggerMobileAlert("vibration", "📳 VIBRATION ALERT", "Seismic or motion vibration detected!");
+    }
+    else if (key === "sensors/vibrationCount") setText("valVib", val);
+
+    // Status
+    else if (key === "status/relay1") updateRelay(1, val === "1");
+    else if (key === "status/relay2") updateRelay(2, val === "1");
+    else if (key === "status/relay3") updateRelay(3, val === "1");
+    else if (key === "status/relay4") updateRelay(4, val === "1");
+    else if (key === "status/motorMode") {
+      const b = document.getElementById("modeBadge");
+      b.textContent = "Motor: " + val;
+      b.className = "badge " + (val.indexOf("Manual") >= 0 ? "warn" : "online");
+    }
+    else if (key === "status/buzzerReason") {
+      document.getElementById("buzzerBadge").textContent = "Buzzer: " + val;
+    }
+
+    // Notifications
+    else if (key === "notifications") {
+      try {
+        const obj = JSON.parse(val);
+        addNotif(obj.message);
+      } catch(e) {}
+    }
+  });
+}
+
+function setText(id, v) { document.getElementById(id).textContent = v; }
+function setBool(id, cardId, v) {
+  const b = (v === "1");
+  document.getElementById(id).textContent = b ? "YES" : "NO";
+  if (cardId) document.getElementById(cardId).className = "sensor-card " + (b ? "alert" : "ok");
+}
+function updateRelay(n, on) {
+  relayState[n] = on;
+  document.getElementById("rc" + n).classList.toggle("on", on);
+  document.getElementById("tog" + n).classList.toggle("on", on);
+  document.getElementById("state" + n).textContent = on ? "ON" : "OFF";
+}
+function setConn(online) {
+  const b = document.getElementById("connBadge");
+  b.className = "badge " + (online ? "online" : "offline");
+  b.textContent = online ? "● Online" : "● Connecting...";
+}
+
+// ---------- Toggle Relay ----------
+function toggleRelay(n) {
+  if (!client || !client.connected) return alert("MQTT not connected");
+  const newVal = relayState[n] ? "0" : "1";
+  client.publish(`${TOPIC_BASE}/control/relay${n}`, newVal);
+  console.log(`📤 relay${n} = ${newVal}`);
+}
+window.toggleRelay = toggleRelay;
+
+// ---------- Automated Zero-Click Email & Alert Engine ----------
+let USER_ALERT_EMAIL = localStorage.getItem("sentinel_alert_email") || "tamiltamilboss090@gmail.com";
+let WEB3FORMS_ACCESS_KEY = localStorage.getItem("sentinel_web3forms_key") || "165a15c1-3a97-4ecc-860d-e9e2817fa401";
+const EMAILJS_PUBLIC_KEY = ""; // Optional EmailJS Public Key
+const EMAILJS_SERVICE_ID = "default_service";
+const EMAILJS_TEMPLATE_ID = "template_emergency";
+
+let lastAlertTimes = {};
+
+function saveAlertEmail(email) {
+  USER_ALERT_EMAIL = email.trim() || "tamiltamilboss090@gmail.com";
+  localStorage.setItem("sentinel_alert_email", USER_ALERT_EMAIL);
+  console.log("Saved Alert Email:", USER_ALERT_EMAIL);
+}
+
+function saveWeb3Key(key) {
+  WEB3FORMS_ACCESS_KEY = key.trim() || "165a15c1-3a97-4ecc-860d-e9e2817fa401";
+  localStorage.setItem("sentinel_web3forms_key", WEB3FORMS_ACCESS_KEY);
+  console.log("Saved Web3Forms Key:", WEB3FORMS_ACCESS_KEY);
+}
+
+// Auto-fill stored email & key into inputs on page load
+window.addEventListener("DOMContentLoaded", () => {
+  const emailInput = document.getElementById("userEmailInput");
+  if (emailInput) emailInput.value = USER_ALERT_EMAIL;
+  
+  const keyInput = document.getElementById("userKeyInput");
+  if (keyInput) keyInput.value = WEB3FORMS_ACCESS_KEY;
+});
+
+if (window.emailjs && EMAILJS_PUBLIC_KEY) {
+  try { emailjs.init(EMAILJS_PUBLIC_KEY); } catch(e){}
+}
+
+function requestMobileNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+async function sendAutomatedEmailAlert(title, body) {
+  const recipient = USER_ALERT_EMAIL || localStorage.getItem("sentinel_alert_email") || "tamiltamilboss090@gmail.com";
+  const accessKey = WEB3FORMS_ACCESS_KEY || localStorage.getItem("sentinel_web3forms_key") || "165a15c1-3a97-4ecc-860d-e9e2817fa401";
+
+  if (!recipient) {
+    console.warn("⚠️ No alert recipient email specified. Enter your email in the top dashboard bar.");
+    return;
+  }
+
+  console.log(`🚀 [ZERO-CLICK AUTO EMAIL] Dispatching background email to ${recipient}...`);
+
+  // 1. EmailJS SDK send if key provided
+  if (window.emailjs && EMAILJS_PUBLIC_KEY) {
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        to_email: recipient,
+        alert_title: title,
+        alert_body: body,
+        alert_time: new Date().toLocaleString()
+      });
+      console.log("✅ Zero-click email sent via EmailJS to:", recipient);
+      addNotif(`✉️ <b>Automated Email Sent</b> to <u>${recipient}</u> (${title})`);
+      return;
+    } catch(e) {
+      console.warn("EmailJS send error:", e);
+    }
+  }
+
+  // 2. Direct Web3Forms Background HTTP POST (Zero-Click, No Backend Required)
+  try {
+    const resp = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        access_key: accessKey,
+        to_email: recipient,
+        subject: `🚨 [SENTINEL AUTOMATED HAZARD] ${title}`,
+        from_name: "SentinelHome IoT Security",
+        message: `AUTOMATED EMERGENCY HAZARD DETECTED (Zero-Click Dispatch)\n\nAlert Title: ${title}\nDescription: ${body}\nTimestamp: ${new Date().toLocaleString()}\nSystem: SentinelHome MQTT Dashboard`
+      })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      console.log("✅ Automated zero-click email successfully dispatched to", recipient);
+      addNotif(`✉️ <b>Auto Email Dispatched</b> to <u>${recipient}</u> (${title})`);
+    } else {
+      console.log("Auto email background response:", data);
+      addNotif(`✉️ <b>Auto Email Triggered</b> for <u>${recipient}</u>`);
+    }
+  } catch(err) {
+    console.warn("Background auto-email dispatch exception:", err);
+    addNotif(`✉️ <b>Auto Email Triggered</b> for <u>${recipient}</u>`);
+  }
+}
+
+function triggerMobileAlert(alertType, title, body) {
+  const now = Date.now();
+  // Prevent spamming alerts every 200ms (throttle per alert type to once every 10s)
+  if (lastAlertTimes[alertType] && (now - lastAlertTimes[alertType]) < 10000) return;
+  lastAlertTimes[alertType] = now;
+
+  // 1. Mobile System Push Notification & Vibration Pattern
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
+        body: body,
+        icon: 'https://img.icons8.com/color/96/warning-shield.png',
+        vibrate: [300, 100, 300, 100, 300],
+        requireInteraction: true
+      });
+    } catch(e) {
+      console.warn("Mobile push error:", e);
+    }
+  }
+
+  // 2. Voice Speech Synthesis Warning Alarm
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(`${title}. ${body}`);
+      utterance.lang = 'en-US';
+      utterance.pitch = 1.1;
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
+    } catch(e) {}
+  }
+
+  // 3. Automated Email Dispatcher
+  sendAutomatedEmailAlert(title, body);
+
+  // 4. Notification Log Entry with 📱 SMS & ✉️ Email Links
+  const smsBody = encodeURIComponent(`${title}: ${body}`);
+  const mailSubj = encodeURIComponent(`🚨 SENTINEL EMERGENCY: ${title}`);
+  const mailBody = encodeURIComponent(`${title}\n\n${body}\n\nTime: ${new Date().toLocaleString()}`);
+  const targetMail = USER_ALERT_EMAIL ? USER_ALERT_EMAIL : "";
+  const notifContent = `<span style="font-weight:bold;color:#dc2626;">${title}</span>: ${body} <a href="sms:?body=${smsBody}" class="sms-alert-link" target="_blank">📱 SMS</a> <a href="mailto:${targetMail}?subject=${mailSubj}&body=${mailBody}" class="email-alert-link" target="_blank">✉️ Email</a>`;
+  addNotif(notifContent);
+}
+
+function addNotif(msg) {
+  const list = document.getElementById("notifList");
+  if (list.children.length === 1 && list.children[0].textContent.includes("Waiting")) {
+    list.innerHTML = "";
+  }
+  const div = document.createElement("div");
+  div.className = "notif-item";
+  const time = new Date().toLocaleTimeString();
+  div.innerHTML = `${msg}<div class="ntime">${time}</div>`;
+  list.insertBefore(div, list.firstChild);
+  while (list.children.length > 30) list.removeChild(list.lastChild);
+}
+
+// ---------- AI Gemini Voice/Text Chat Integration ----------
+let GEMINI_API_KEY = localStorage.getItem("sentinel_gemini_key") || "YOUR_GEMINI_API_KEY";
+
+let recognition = null;
+let isListening = false;
+
+function toggleChatWindow() {
+  const card = document.getElementById("aiChatCard");
+  const fab = document.getElementById("aiFab");
+  const isOpen = card.classList.toggle("open");
+  fab.classList.toggle("active", isOpen);
+  fab.textContent = isOpen ? "✕" : "🤖";
+  if (isOpen) document.getElementById("aiInput").focus();
+}
+
+function appendMsg(role, text) {
+  const container = document.getElementById("aiMessages");
+  const div = document.createElement("div");
+  div.className = `msg ${role}-msg`;
+  div.innerHTML = text;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function getLiveSensorDataString() {
+  const txt = (id) => (document.getElementById(id) ? document.getElementById(id).textContent.trim() : "--");
+  return `LIVE SMART HOME SENSORS & RELAY STATES:
+- Temperature: ${txt("valTemp")} °C
+- Humidity: ${txt("valHumid")} %
+- Water Level: ${txt("valWater")} %
+- Ambient Light Level: ${txt("valLight")} %
+- Fire Hazard Status: ${txt("valFire")} (YES = Active Fire Alert, NO = Safe/Normal)
+- Smoke Sensor: ${txt("valSmoke")} (YES = Smoke Detected, NO = Safe)
+- Rain Sensor: ${txt("valRain")} (YES = Raining, NO = Dry)
+- Motion Sensor: ${txt("valMotion")} (YES = Motion Detected, NO = Clear)
+- Vibration Count: ${txt("valVib")}
+- Light 1 (Relay 1): ${txt("state1")}
+- Fan (Relay 2): ${txt("state2")}
+- Motor (Relay 3): ${txt("state3")}
+- Emergency / Fire Strobe (Relay 4): ${txt("state4")}`;
+}
+
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+
+  recognition.onstart = () => {
+    isListening = true;
+    document.getElementById("micBtn").classList.add("listening");
+    appendMsg("status", "Listening for voice...");
+  };
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    document.getElementById("aiInput").value = transcript;
+    sendAiCommand(transcript);
+  };
+
+  recognition.onerror = (event) => {
+    appendMsg("status", "Voice error: " + event.error);
+    stopListening();
+  };
+
+  recognition.onend = () => stopListening();
+}
+
+function toggleVoice() {
+  if (!recognition) return alert("Speech Recognition is not supported in this browser.");
+  if (isListening) {
+    recognition.stop();
+  } else {
+    recognition.start();
+  }
+}
+
+function stopListening() {
+  isListening = false;
+  document.getElementById("micBtn").classList.remove("listening");
+}
+
+function turnAllRelays(stateStr) {
+  if (client && client.connected) {
+    for (let i = 1; i <= 4; i++) {
+      client.publish(`${TOPIC_BASE}/control/relay${i}`, stateStr);
+    }
+    const stateText = stateStr === "1" ? "ON" : "OFF";
+    appendMsg("ai", `📤 Executed: Turned <b>ALL Relays / Devices</b> ${stateText} (${TOPIC_BASE}/control/relay1..4 → ${stateStr})`);
+  } else {
+    appendMsg("ai", "⚠️ MQTT Client not connected!");
+  }
+}
+
+async function sendAiCommand(customText) {
+  const inputEl = document.getElementById("aiInput");
+  const promptText = customText || inputEl.value.trim();
+  if (!promptText) return;
+
+  // Open chat card if closed
+  document.getElementById("aiChatCard").classList.add("open");
+  document.getElementById("aiFab").classList.add("active");
+  document.getElementById("aiFab").textContent = "✕";
+
+  appendMsg("user", promptText);
+  inputEl.value = "";
+  const statusElem = appendMsg("status", "Thinking...");
+
+  const liveState = getLiveSensorDataString();
+
+  // 1. Try Gemini API with Tool Calling & Sensor Q&A
+  if (GEMINI_API_KEY && GEMINI_API_KEY !== "YOUR_GEMINI_API_KEY") {
+    const candidateEndpoints = [
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+    ];
+
+    const requestBody = {
+      systemInstruction: {
+        parts: [{
+          text: `You are Sentinel Home AI Assistant. You have real-time access to live sensors and device states:
+
+${liveState}
+
+RULES:
+1. If the user asks a question about sensor values, hazard alerts, fire status, temperature, water level, or relay states (e.g. "what is fire status?", "is it raining?", "what is the status of light 1?"), ANSWER concisely using the live sensor data above.
+2. If the user asks to control or toggle a device (e.g. turn on light 1, turn off fan, start motor, activate fire mode), call the 'publish_mqtt' tool with the exact topic and payload.
+3. If the user asks to turn off all devices/relays/everything (e.g. "off all", "turn off all", "everything off"), call publish_mqtt for all 4 relays with payload '0'. If user asks to turn on all, call publish_mqtt for all 4 relays with payload '1'.
+Base Topic: ${TOPIC_BASE}
+Device Mappings:
+- Light / Light 1: ${TOPIC_BASE}/control/relay1
+- Fan / Relay 2: ${TOPIC_BASE}/control/relay2
+- Motor / Pump / Relay 3: ${TOPIC_BASE}/control/relay3
+- Emergency / Fire Mode / Relay 4: ${TOPIC_BASE}/control/relay4
+Payload: "1" for ON/Enable/Turn On/Activate/Fire Mode, "0" for OFF/Disable/Turn Off/Deactivate.`
+        }]
+      },
+      contents: [
+        { role: "user", parts: [{ text: promptText }] }
+      ],
+      tools: [{
+        functionDeclarations: [{
+          name: "publish_mqtt",
+          description: "Publishes exact MQTT topic and payload for smart home devices.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              topic: { type: "STRING", description: "Full MQTT topic string" },
+              payload: { type: "STRING", description: "Payload string ('1' or '0')" }
+            },
+            required: ["topic", "payload"]
+          }
+        }]
+      }],
+      toolConfig: {
+        functionCallingConfig: {
+          mode: "AUTO"
+        }
+      }
+    };
+
+    let lastApiError = null;
+
+    for (const endpoint of candidateEndpoints) {
+      try {
+        const response = await fetch(`${endpoint}?key=${GEMINI_API_KEY}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody)
+        });
+
+        const data = await response.json();
+        console.log("Gemini API Response:", data);
+
+        if (data.error) {
+          const errMsg = (data.error.message || "").toLowerCase();
+          const isModelUnavailable = errMsg.includes("models/") || errMsg.includes("model is") || (errMsg.includes("not found") && !errMsg.includes("key"));
+          if (isModelUnavailable) {
+            lastApiError = data.error.message;
+            continue;
+          }
+          statusElem.remove();
+          appendMsg("ai", `API Error: ${data.error.message || "Invalid Key"}`);
+          return;
+        }
+
+        const parts = data.candidates?.[0]?.content?.parts || [];
+        const funcParts = parts.filter(p => p.functionCall);
+        const textPart = parts.find(p => p.text);
+
+        statusElem.remove();
+
+        if (funcParts.length > 0) {
+          for (const fp of funcParts) {
+            if (fp.functionCall && fp.functionCall.name === "publish_mqtt") {
+              const { topic, payload } = fp.functionCall.args;
+              if (client && client.connected) {
+                client.publish(topic, String(payload));
+                const devName = topic.includes("relay1") ? "Light 1" : topic.includes("relay2") ? "Fan" : topic.includes("relay3") ? "Motor" : topic.includes("relay4") ? "Emergency Mode" : "Device";
+                const stateStr = payload === "1" ? "ON" : "OFF";
+                appendMsg("ai", `📤 Executed: Turned <b>${devName}</b> ${stateStr} (${topic} → ${payload})`);
+              }
+            }
+          }
+          return;
+        } else if (textPart && textPart.text) {
+          appendMsg("ai", textPart.text);
+          return;
+        }
+      } catch (err) {
+        console.error("Gemini API Exception:", err);
+        lastApiError = err.message;
+      }
+    }
+  }
+
+  // 2. Comprehensive Local Intent Fallback (Batch Commands + Status Q&A + Device Control)
+  statusElem.remove();
+  const lower = promptText.toLowerCase();
+
+  // Batch "All Off" or "All On" Fallback (e.g. "off all", "turn off all relays", "everything off")
+  const isAllOff = (lower.includes("all") || lower.includes("everything")) && (lower.includes("off") || lower.includes("stop") || lower.includes("disable") || lower.includes("turn off") || lower.includes("switch off") || lower.includes("shutdown"));
+  const isAllOn = (lower.includes("all") || lower.includes("everything")) && (lower.includes("on") || lower.includes("start") || lower.includes("enable") || lower.includes("turn on") || lower.includes("switch on"));
+
+  if (isAllOff) {
+    turnAllRelays("0");
+    return;
+  }
+  if (isAllOn) {
+    turnAllRelays("1");
+    return;
+  }
+
+  // Status Question Fallbacks (Handles queries like "what is status of light 1?", "is fan on?", etc.)
+  const isQuery = lower.includes("what") || lower.includes("is") || lower.includes("status") || lower.includes("check") || lower.includes("how") || lower.includes("state");
+
+  if (isQuery && (lower.includes("light") || lower.includes("relay 1") || lower.includes("relay1") || lower.includes("lamp") || lower.includes("bulb"))) {
+    const val = document.getElementById("state1") ? document.getElementById("state1").textContent.trim() : "OFF";
+    appendMsg("ai", `💡 Light 1 Status: <b>${val}</b>`);
+    return;
+  }
+  if (isQuery && (lower.includes("fan") || lower.includes("relay 2") || lower.includes("relay2") || lower.includes("cooler") || lower.includes("ac"))) {
+    const val = document.getElementById("state2") ? document.getElementById("state2").textContent.trim() : "OFF";
+    appendMsg("ai", `🌀 Fan Status: <b>${val}</b>`);
+    return;
+  }
+  if (isQuery && (lower.includes("motor") || lower.includes("pump") || lower.includes("relay 3") || lower.includes("relay3"))) {
+    const val = document.getElementById("state3") ? document.getElementById("state3").textContent.trim() : "OFF";
+    appendMsg("ai", `🚰 Motor Status: <b>${val}</b>`);
+    return;
+  }
+  if (isQuery && (lower.includes("emergency") || lower.includes("strobe") || lower.includes("relay 4") || lower.includes("relay4"))) {
+    const val = document.getElementById("state4") ? document.getElementById("state4").textContent.trim() : "OFF";
+    appendMsg("ai", `🔦 Emergency Mode Status: <b>${val}</b>`);
+    return;
+  }
+
+  if (lower.includes("fire")) {
+    const val = document.getElementById("valFire") ? document.getElementById("valFire").textContent.trim() : "NO";
+    appendMsg("ai", `🔥 Fire Hazard Status: <b>${val}</b> (${val === "YES" ? "Active Fire Detected!" : "Safe / Normal"})`);
+    return;
+  }
+  if (lower.includes("temp") || lower.includes("temperature")) {
+    const val = document.getElementById("valTemp") ? document.getElementById("valTemp").textContent.trim() : "--";
+    appendMsg("ai", `🌡️ Current Temperature: <b>${val} °C</b>`);
+    return;
+  }
+  if (lower.includes("humid") || lower.includes("humidity")) {
+    const val = document.getElementById("valHumid") ? document.getElementById("valHumid").textContent.trim() : "--";
+    appendMsg("ai", `💧 Current Humidity: <b>${val} %</b>`);
+    return;
+  }
+  if (lower.includes("water") || lower.includes("tank")) {
+    const val = document.getElementById("valWater") ? document.getElementById("valWater").textContent.trim() : "--";
+    appendMsg("ai", `🚰 Water Level: <b>${val} %</b>`);
+    return;
+  }
+  if (lower.includes("rain") || lower.includes("raining")) {
+    const val = document.getElementById("valRain") ? document.getElementById("valRain").textContent.trim() : "NO";
+    appendMsg("ai", `🌧️ Rain Status: <b>${val}</b> (${val === "YES" ? "Raining" : "Dry"})`);
+    return;
+  }
+  if (lower.includes("smoke")) {
+    const val = document.getElementById("valSmoke") ? document.getElementById("valSmoke").textContent.trim() : "NO";
+    appendMsg("ai", `💨 Smoke Sensor: <b>${val}</b> (${val === "YES" ? "Smoke Detected!" : "Safe"})`);
+    return;
+  }
+  if (lower.includes("motion")) {
+    const val = document.getElementById("valMotion") ? document.getElementById("valMotion").textContent.trim() : "NO";
+    appendMsg("ai", `🚶 Motion Sensor: <b>${val}</b> (${val === "YES" ? "Motion Detected" : "Clear"})`);
+    return;
+  }
+
+  // Device Control Fallbacks
+  let targetRelay = null;
+  let action = null;
+
+  if (lower.includes("light") || lower.includes("relay 1") || lower.includes("relay1") || lower.includes("lamp") || lower.includes("bulb")) targetRelay = 1;
+  else if (lower.includes("fan") || lower.includes("relay 2") || lower.includes("relay2") || lower.includes("cooler") || lower.includes("ac")) targetRelay = 2;
+  else if (lower.includes("motor") || lower.includes("pump") || lower.includes("relay 3") || lower.includes("relay3")) targetRelay = 3;
+  else if (lower.includes("fire") || lower.includes("emergency") || lower.includes("relay 4") || lower.includes("relay4") || lower.includes("alarm")) targetRelay = 4;
+
+  if (lower.includes("on") || lower.includes("start") || lower.includes("enable") || lower.includes("activate") || lower.includes("fire mode")) action = "1";
+  else if (lower.includes("off") || lower.includes("stop") || lower.includes("disable") || lower.includes("deactivate")) action = "0";
+
+  if (targetRelay && action !== null) {
+    const topic = `${TOPIC_BASE}/control/relay${targetRelay}`;
+    if (client && client.connected) {
+      client.publish(topic, action);
+      const devName = targetRelay === 1 ? "Light 1" : targetRelay === 2 ? "Fan" : targetRelay === 3 ? "Motor" : "Emergency Mode";
+      appendMsg("ai", `📤 Executed: Turned <b>${devName}</b> ${action === "1" ? "ON" : "OFF"} (${topic} → ${action})`);
+    } else {
+      appendMsg("ai", "⚠️ MQTT Client not connected!");
+    }
+  } else {
+    appendMsg("ai", "I couldn't process that command. Try asking <i>'Off all relays'</i>, <i>'What is status of light 1?'</i>, or <i>'Turn off light 1'</i>.");
+  }
+}
+
+// ---------- Start ----------
+connect();
+</script>
+</body>
+</html>
